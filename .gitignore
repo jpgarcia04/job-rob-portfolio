@@ -1,0 +1,36 @@
+# --- Secretos y datos personales (NUNCA versionar) ---
+.env
+*.env
+!.env.example
+
+# --- Notas privadas del desarrollador ---
+PRECIO.md
+PROMPT-*.md
+BRIEF-*.md
+ENTREGA.md
+NOTAS-*.md
+
+# --- Datos generados en tiempo de ejecucion ---
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Entorno virtual de Python ---
+.venv/
+venv/
+env/
+
+# --- Cache de Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# --- Editores / SO ---
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini

@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bandeja de ofertas</title>
+  <!-- EL ICONO DE LA VENTANA, y no es decoración. Desde el icono del
+       escritorio la app se abre en modo `--app`, y ahí el navegador toma el
+       icono de la barra de tareas de ESTE enlace. Sin él, su barra de tareas
+       enseñaría el logotipo de Edge y la app no se distinguiría de una pestaña
+       cualquiera. Se sirve desde `herramientas/job-rob.ico`, que es el mismo
+       archivo que usa el acceso directo: un solo icono, un solo sitio. -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+  <!-- Brillo ambiental del fondo. Puramente decorativo. -->
+  <div class="ambiente" aria-hidden="true"></div>
+
+  <!-- LO ÚNICO QUE SE QUEDA FIJO.
+       La cabecera entera medía 189 px pegados arriba —el 21% de la pantalla
+       durante toda la sesión— y dos de sus tres filas son cosas que se usan
+       ANTES de ponerse a leer, no mientras se lee. Aquí queda lo que sí hace
+       falta siempre: quién eres, en qué estado estás mirando, qué mercado, y
+       cuánto llevas gastado. 77 px.
+
+       Y ESTÁ SEPARADO EN DOS ELEMENTOS POR UNA RAZÓN, no por estilo:
+       `position: sticky` no puede salirse de la caja de su padre. Con las tres
+       filas dentro del mismo <header>, la barra se quedaba pegada arriba
+       exactamente lo que medía ese <header> y después se iba con el scroll
+       —medido: a scrollY 878 estaba en top −766, fuera de pantalla—. Para que
+       una fila se quede hay que sacarla de la caja de las que se van. -->
+  <header class="cabecera barra-fija">
+    <div class="cabecera-interior">
+
+      <div class="marca">
+        <span class="marca-icono" aria-hidden="true"></span>
+        <div class="marca-texto">
+          <span class="marca-nombre">Bandeja</span>
+          <span class="marca-sub" id="marca-sub">—</span>
+        </div>
+      </div>
+
+      <nav class="filtros" aria-label="Filtrar por estado">
+        <button class="filtro activo" data-estado="nueva" aria-pressed="true">
+          Sin revisar<span class="pastilla" data-cuenta="nueva">0</span>
+        </button>
+        <button class="filtro" data-estado="interesa" aria-pressed="false">
+          Interesan<span class="pastilla" data-cuenta="interesa">0</span>
+        </button>
+        <!-- EL CUARTO ESTADO (3 septiembre 2026). Sin él, «me interesa» era un
+             callejón sin salida: la oferta se quedaba ahí para siempre y no
+             había forma de decir que ya se había enviado la candidatura. Su
+             trabajo de verdad tiene este estado; el día que la app no lo tenga,
+             ella lo lleva en otro sitio y la bandeja deja de ser donde trabaja. -->
+        <button class="filtro" data-estado="postulada" aria-pressed="false">
+          Postuladas<span class="pastilla" data-cuenta="postulada">0</span>
+        </button>
+        <button class="filtro" data-estado="descartada" aria-pressed="false">
+          Descartadas<span class="pastilla" data-cuenta="descartada">0</span>
+        </button>
+      </nav>
+
+      <label class="campo-mercado">
+        <span class="oculto">Mercado</span>
+        <select id="mercado">
+          <option value="todos">Todos los mercados</option>
+        </select>
+      </label>
+
+      <!-- EL GASTO SUBE AQUÍ (3 septiembre 2026). Estaba junto a los botones
+           que gastan, en la tercera fila, y esa fila deja de estar fija: es
+           algo que se usa ANTES de leer, no mientras se lee. El gasto sí tiene
+           que verse siempre —es un aviso, y un aviso que hay que ir a buscar
+           no avisa—, así que se queda en la única fila que no se va. -->
+      <!-- SIN BARRA DE RELLENO (8 septiembre 2026). Una barra necesita un
+           denominador, y el que había —los $12 del mes— no frenaba nada: el
+           mes solo avisa y la cuenta de Anthropic se recarga sola al bajar de
+           un umbral. Pintar una barra llenándose hacia un tope que no existe
+           es prometer un freno que no está. Lo que frena es el tope por
+           acción, y ese se dice antes de cada cobro. Aquí queda la cuenta:
+           cuánto lleva gastado, de qué mes, y cuándo vuelve a cero. -->
+      <a class="presupuesto" id="presupuesto" href="#" title="Gasto del mes">
+        <span id="presupuesto-texto">—</span>
+      </a>
+
+    </div>
+  </header>
+
+  <!-- LO QUE SE VA CON EL SCROLL. No está escondido: está a un scroll, que es
+       una diferencia que importa. Son los filtros de la lectura del sistema y
+       los tres botones que gastan — dos cosas que se tocan al empezar. -->
+  <div class="cabecera-resto">
+
+    <!-- LAS ZONAS DEL MERCADO (24 septiembre 2026). Solo sale cuando el
+         mercado elegido tiene zonas —hoy, Texas—, y se rellena desde
+         `/api/resumen`. No van en el desplegable: el desplegable sigue siendo
+         de mercados, y estas son cuatro partes de uno de ellos. -->
+    <div class="cabecera-interior fila-zona" id="fila-zona" hidden>
+      <span class="fila-quien">Zona</span>
+      <nav class="filtros filtros-zona" id="filtros-zona" aria-label="Filtrar por zona"></nav>
+    </div>
+
+    <!-- Segunda fila: lo que decidió la capa 2. Queda oculta mientras no
+         haya ninguna clasificación, para que la bandeja siga siendo la
+         misma de siempre si todavía no se ha corrido el clasificador. -->
+    <div class="cabecera-interior fila-relevancia" id="fila-relevancia" hidden>
+      <!-- DE QUIÉN ES CADA FILA, DICHO EN VOZ ALTA (3 septiembre 2026).
+           Arriba están SUS decisiones («Descartadas» = las que ella descartó);
+           aquí abajo, la lectura del sistema. A 40 píxeles de distancia había
+           un «Descartadas» y un «Ruido» que significaban cosas distintas y no
+           lo decían por ningún lado: la regla nº 1 rota en pequeño. Se arregla
+           en los dos sitios a la vez — con esta etiqueta, y quitándole a la de
+           abajo la palabra que se confundía. -->
+      <span class="fila-quien">Lectura del sistema</span>
+      <nav class="filtros filtros-rel" aria-label="Filtrar por la lectura del sistema">
+        <button class="filtro activo" data-rel="todas" aria-pressed="true">
+          Todas
+        </button>
+        <button class="filtro" data-rel="relevantes" aria-pressed="false">
+          Relevantes<span class="pastilla" data-rel-cuenta="relevantes">0</span>
+        </button>
+        <button class="filtro filtro-criterio" data-rel="criterio" aria-pressed="false">
+          Necesitan tu criterio<span class="pastilla" data-rel-cuenta="criterio">0</span>
+        </button>
+        <!-- «No encajan» y no «Ruido»: lo primero es lo que el sistema
+             concluyó y lo segundo era jerga nuestra, y encima se leía como
+             gemelo del «Descartadas» de la fila de arriba, que es SU decisión.
+             La palabra que las separa importa más que el filtro. -->
+        <button class="filtro" data-rel="descartadas" aria-pressed="false">
+          No encajan<span class="pastilla" data-rel-cuenta="descartadas">0</span>
+        </button>
+
+        <!-- LAS DOS MITADES DE «PENDIENTE», Y SON COSAS OPUESTAS.
+             Una la miró el asistente y la dejó para después con un motivo
+             escrito; la otra no la ha mirado nadie. Un solo filtro
+             «pendientes» las haría indistinguibles, y entonces el triaje
+             sería el filtro silencioso que la regla nº 1 prohíbe. -->
+        <button class="filtro" data-rel="aplazadas" aria-pressed="false">
+          Sin revisar todavía<span class="pastilla" data-rel-cuenta="aplazadas">0</span>
+        </button>
+        <button class="filtro" data-rel="sin_mirar" aria-pressed="false">
+          Nadie las ha mirado<span class="pastilla" data-rel-cuenta="sin_mirar">0</span>
+        </button>
+      </nav>
+      <!-- AQUÍ IBA `86 clasificadas · $1.1016 USD · ejecutivo_en: 70 · …`.
+           Se ha ido, y no por sitio: no le dice nada a ella, y encima no cabía
+           —se cortaba con puntos suspensivos, que es la peor forma de enseñar
+           una cifra—. Su sitio es `python -m clasificador presupuesto`, que la
+           da entera y con contexto. Lo que sí necesita ver del gasto es la
+           barra, y esa subió a la fila que no se mueve. -->
+    </div>
+
+    <!-- Tercera fila: los botones que gastan. Ninguno gasta al pulsarlo:
+         todos abren primero la confirmación con el número.
+
+         EL PRIMERO HACE LOS TRES SEGUIDOS (3 septiembre 2026). Antes había que
+         pulsar los tres EN ORDEN y esperar entre ellos —medido: ~5 minutos y
+         tres confirmaciones— para ver una sola oferta nueva. Los tres siguen
+         estando porque hacen falta: cuando la cadena no cabe entera en el tope
+         por acción, lo que queda fuera solo se puede lanzar desde su botón. -->
+    <div class="cabecera-interior fila-acciones">
+      <div class="acciones">
+        <button class="btn btn-accion btn-al-dia" id="btn-al-dia" data-accion="al_dia">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M10 3.2a6.8 6.8 0 105.9 3.4" stroke="currentColor"
+                  stroke-width="1.8" fill="none" stroke-linecap="round"/>
+            <path d="M16.4 3v3.8h-3.8" stroke="currentColor" stroke-width="1.8"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Ponme al día
+        </button>
+
+        <span class="acciones-separador" aria-hidden="true"></span>
+
+        <button class="btn btn-accion" id="btn-recolectar" data-accion="recolectar">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M13.2 13.2L17 17" stroke="currentColor" stroke-width="1.7"
+                  stroke-linecap="round" fill="none"/>
+          </svg>
+          Buscar ofertas nuevas
+        </button>
+
+        <button class="btn btn-accion" id="btn-clasificar" data-accion="clasificar">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M4 5h12M4 10h12M4 15h7" stroke="currentColor" stroke-width="1.7"
+                  stroke-linecap="round" fill="none"/>
+          </svg>
+          Que el asistente lea lo nuevo
+        </button>
+
+        <button class="btn btn-accion" id="btn-ranking" data-accion="ranking">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M4 15V9M10 15V4M16 15v-4" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" fill="none"/>
+          </svg>
+          Ordenar por dónde empezar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="contenido">
+
+    <!-- POR DÓNDE EMPEZAR. Es lo único del sistema que ella lee entera antes
+         de abrir nada, y hasta hoy solo se veía en consola. Va arriba del
+         todo porque es la respuesta a "tengo veinte minutos, ¿qué miro?". -->
+    <section class="ranking" id="ranking" hidden>
+      <div class="ranking-alto">
+        <h2 class="ranking-titulo">Por dónde empezar</h2>
+        <span class="ranking-meta" id="ranking-meta"></span>
+        <button class="ranking-plegar" id="ranking-plegar" aria-expanded="true">
+          Ocultar
+        </button>
+      </div>
+      <div id="ranking-cuerpo">
+        <!-- LO QUE HA CAMBIADO DESDE QUE SE HIZO ESTE ORDEN.
+             Es lo único del sistema que ella lee entero, y hasta hoy la
+             pantalla solo decía su fecha: quien lo abría estaba leyendo una
+             foto vieja sin saberlo. No se arregla reordenando solo —eso
+             gasta—, se arregla diciéndolo, y ofreciendo rehacerlo con su
+             número delante.
+
+             VA DENTRO DEL CUERPO Y ARRIBA DEL TODO. Dentro, porque al plegar
+             el orden ella deja de leerlo y el aviso sobra; arriba, porque un
+             aviso debajo de la lectura llega cuando ya se ha fiado de ella. -->
+        <div class="ranking-viejo" id="ranking-viejo" hidden>
+          <p class="ranking-viejo-texto" id="ranking-viejo-texto"></p>
+          <button class="btn btn-rehacer" id="btn-rehacer" data-accion="ranking">
+            Rehacer el orden
+          </button>
+        </div>
+
+        <!-- LO QUE ESTE ORDEN NO MIRÓ.
+             El ranking se recorta cuando la cola sin revisar no cabe en el
+             tope por acción (ver `llm.max_ofertas_por_ranking`), y el corte es
+             POR RECENCIA: se caen las más antiguas. Callarlo escondería
+             ofertas dentro de la única pieza que ella lee entera, que es la
+             regla nº 1 de la casa rota en el peor sitio.
+
+             Va junto al aviso de envejecimiento y por el mismo motivo: los dos
+             dicen «esto que estás leyendo no es todo», y los dos tienen que
+             llegar ANTES de la lectura, no después de que se haya fiado. -->
+        <p class="ranking-recorte" id="ranking-recorte" hidden></p>
+
+        <p class="ranking-lectura" id="ranking-lectura"></p>
+        <ul class="ranking-patrones" id="ranking-patrones"></ul>
+        <ol class="ranking-lista" id="ranking-lista"></ol>
+      </div>
+    </section>
+
+    <!-- Explicación del filtro activo, cuando hace falta una. Las ofertas
+         aplazadas necesitan una: sin ella, "sin revisar todavía" se lee como
+         "descartadas" y el trabajo del triaje se pierde. -->
+    <!-- EL PARTE DE LO QUE SE HIZO MIENTRAS ELLA NO ESTABA. Gastar con ella
+         dormida solo es aceptable si al llegar ve qué se hizo y qué costó. Va
+         lo primero, encima incluso de los filtros de la rejilla: es lo que
+         contesta «¿y esto de dónde ha salido?». -->
+    <p class="auto-aviso" id="auto-aviso" hidden></p>
+
+    <p class="explicacion" id="explicacion" hidden></p>
+
+    <!-- CUÁNTAS PUBLICACIONES SE QUEDAN FUERA DE ESTA PANTALLA.
+         La vista tiene un tope y hasta hoy no lo decía: con la base del 3
+         septiembre 2026, 139 de sus 307 vacantes no llegaban a pintarse y no
+         había ninguna forma de saberlo. Va ARRIBA de la rejilla, no al final,
+         porque un aviso al que hay que llegar scrolleando llega cuando ella ya
+         ha dado la lista por completa. -->
+    <p class="recorte" id="recorte" hidden></p>
+
+    <!-- LA UNIDAD DE LO QUE VIENE DEBAJO, y va aqui y no en la cabecera.
+         Arriba se cuentan ANUNCIOS —«344 anuncios»— y las pastillas cuentan
+         VACANTES —«Sin revisar 272»—. Las dos cifras son ciertas y la
+         diferencia solo se entiende sabiendo que cada tarjeta reune los
+         anuncios de un mismo puesto. Esa frase pertenece a las tarjetas, no a
+         la cabecera: alli habria sustituido a la lista de mercados, que es lo
+         unico que dice donde esta buscando el sistema. -->
+    <p class="fila-quien nota-unidad">Una tarjeta por vacante</p>
+
+    <div id="rejilla" class="rejilla"></div>
+
+    <!-- Sirve para dos cosas: «con este filtro no hay nada» y el PRIMER
+         ARRANQUE, que hasta hoy era una pantalla en blanco.
+
+         Medido el 3 septiembre 2026 contra una carpeta sin base de datos: el
+         servidor devolvía un 503 que decía «Ejecuta primero una recolección:
+         python -m recolector run --sources adzuna», la interfaz lo enseñaba en
+         un aviso flotante y **ese aviso se borraba a los 3,8 segundos**. O sea
+         que la primera vez que ella abría la app veía una instrucción de
+         consola durante cuatro segundos y después nada. -->
+    <div id="vacio" class="vacio" hidden>
+      <div class="vacio-icono" aria-hidden="true"></div>
+      <p class="vacio-titulo">Nada por aquí</p>
+      <p class="vacio-texto"></p>
+      <button class="btn btn-si vacio-boton" id="vacio-boton" hidden></button>
+    </div>
+
+    <div id="cargando" class="cargando">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Cargando ofertas…</span>
+    </div>
+
+    <!-- El pie de la app: fijo abajo a la izquierda, discreto. NO va en la
+         cabecera, que costó bajar de 189 px a 77 y no se vuelve a inflar. Y
+         no va al final del contenido porque ahí queda a 26.000 px de scroll
+         —medido— y un dato que solo sirve cuando algo falla tiene que estar
+         siempre a la vista. -->
+    <footer class="pie-app">
+      <span id="pie-version" class="pie-version">versión —</span>
+      <span class="pie-separador">·</span>
+      <!-- PRIMERO LAS DUDAS Y DESPUÉS EL AVISO, y el orden es el que importa.
+           «Si algo va mal» abre una carpeta y prepara un correo para otro
+           continente; la mayoría de las veces lo que hace falta antes es leer
+           que tardar 30 segundos en abrir no es una avería. Poner el
+           documento a la derecha lo dejaría después del botón que ya no hace
+           falta pulsar. -->
+      <button type="button" id="pie-ajustes" class="pie-boton">
+        Tus criterios
+      </button>
+      <span class="pie-separador">·</span>
+      <button type="button" id="pie-dudas" class="pie-boton">
+        Dudas y ayuda
+      </button>
+      <span class="pie-separador">·</span>
+      <button type="button" id="pie-ayuda" class="pie-boton">
+        Si algo va mal
+      </button>
+    </footer>
+  </main>
+
+  <!-- ================= modal de detalle ================= -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-fondo" data-cerrar></div>
+
+    <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+      <button class="modal-cerrar" data-cerrar aria-label="Cerrar">
+        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+          <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
+
+      <div class="modal-scroll">
+        <div class="modal-cuerpo">
+
+          <div class="modal-marcas" id="modal-marcas"></div>
+
+          <h2 class="modal-titulo" id="modal-titulo"></h2>
+          <p class="modal-empresa" id="modal-empresa"></p>
+
+          <!-- LO QUE DIJO EL TRIAJE. Es lo que convierte «no la han mirado»
+               en «la vio, la puso en el puesto 34 y explicó por qué». Sin
+               esto la oferta aplazada es indistinguible de una descartada,
+               y el aplazar deja de ser una decisión reversible de ella. -->
+          <section class="triaje" id="modal-triaje" hidden>
+            <div class="triaje-alto">
+              <span class="triaje-marca">Sin revisar todavía</span>
+              <span class="triaje-puesto" id="triaje-puesto"></span>
+            </div>
+            <p class="triaje-porque" id="triaje-porque"></p>
+            <p class="triaje-nota">
+              El asistente la vio por encima —título, empresa, ubicación y
+              sueldo— y la dejó para después. No está descartada: nadie ha
+              leído todavía su descripción.
+            </p>
+          </section>
+
+          <!-- Lo que decidió la capa 2, y POR QUÉ. La razón visible es lo
+               que hace que el sistema genere confianza; si no convence
+               leyendo la oferta al lado, es un fallo de producto aunque el
+               CV elegido sea el correcto. -->
+          <section class="veredicto" id="modal-veredicto" hidden>
+            <div class="veredicto-alto">
+              <span class="veredicto-marca" id="veredicto-marca"></span>
+              <span class="veredicto-confianza" id="veredicto-confianza"></span>
+            </div>
+            <p class="veredicto-razon" id="veredicto-razon"></p>
+            <p class="veredicto-duda" id="veredicto-duda" hidden></p>
+            <dl class="veredicto-datos" id="veredicto-datos"></dl>
+          </section>
+
+          <dl class="modal-datos" id="modal-datos"></dl>
+
+          <!-- Los otros anuncios de la MISMA vacante. No se borran nunca:
+               cada uno tiene su URL y puede ser el que le convenga abrir. -->
+          <section class="grupo" id="modal-grupo" hidden>
+            <p class="grupo-titulo" id="grupo-titulo"></p>
+            <p class="grupo-motivo" id="grupo-motivo"></p>
+            <ul class="grupo-lista" id="grupo-lista"></ul>
+          </section>
+
+          <p class="modal-nota" id="modal-nota" hidden></p>
+
+          <!-- EL TEXTO DEL ANUNCIO, Y VA PLEGADO A PROPÓSITO.
+               Esto NO lo escribe el sistema: es el texto crudo del anuncio, tal
+               como llega de la fuente. Y llega cortado — 500 caracteres exactos
+               en 367 de las 381 ofertas de la base, partidos a media palabra.
+               Desplegado ocupaba el final de la ficha y competía con el
+               veredicto, que sí es lo que se ha pagado por producir; peor aún,
+               parecía obra del modelo. Se etiqueta lo que es, se deja a un
+               clic, y no se borra del todo porque para las ofertas que nadie ha
+               leído todavía es la única línea del anuncio que ella tiene. -->
+          <details class="modal-desc" id="modal-desc">
+            <summary class="modal-desc-titulo" id="modal-desc-titulo"></summary>
+            <div class="modal-desc-texto" id="modal-desc-texto"></div>
+          </details>
+
+        </div>
+      </div>
+
+      <footer class="modal-pie">
+        <!-- EL BOTÓN QUE HACE QUE APLAZAR NO SEA PERDER. Cada oferta tiene un
+             turno de triaje y uno solo: la que no entró no vuelve a competir
+             sola, así que este botón es su única vía. -->
+        <button class="btn btn-leer" id="btn-leer" hidden>
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M3 5.5h6a2 2 0 012 2V16a2 2 0 00-2-2H3zM17 5.5h-6a2 2 0 00-2 2V16a2 2 0 012-2h6z"
+                  stroke="currentColor" stroke-width="1.4" fill="none"
+                  stroke-linejoin="round"/>
+          </svg>
+          Que la lea el asistente
+        </button>
+
+        <button class="btn btn-si" id="btn-interesa">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="1.8"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Me interesa
+        </button>
+
+        <!-- «Ya me postulé» NO postula nada, y la etiqueta lo dice así a
+             propósito: es ella quien envía, en su sesión, con su clic. Esto
+             solo apunta que ya lo hizo. La app no postula y no lo va a hacer. -->
+        <button class="btn btn-postulada" id="btn-postulada">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M3 10.5l3.5 3.5L17 5.5" stroke="currentColor" stroke-width="1.8"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7.5 10.5L10 13" stroke="currentColor" stroke-width="1.8"
+                  fill="none" stroke-linecap="round"/>
+          </svg>
+          Ya me postulé
+        </button>
+
+        <button class="btn btn-no" id="btn-descartar">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.7"
+                  fill="none" stroke-linecap="round"/>
+          </svg>
+          Descartar
+        </button>
+
+        <a class="btn btn-abrir" id="btn-abrir" target="_blank" rel="noopener noreferrer">
+          Abrir en la fuente
+          <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <path d="M7 4h9v9M16 4L5 15" stroke="currentColor" stroke-width="1.6"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+        <!-- LA SALIDA PARA CUANDO EL ENLACE NO LLEVA A NINGUNA PARTE.
+             Comprobado el 3 septiembre 2026 abriendo un anuncio de Texas de la
+             propia base: la web de la fuente responde «Sorry, this job is not
+             available in your region» y esa página no trae UN SOLO enlace de
+             postulación. No es un fallo del programa y no se arregla pagando:
+             el JSON crudo de la fuente tampoco trae la URL del empleador — el
+             único campo de enlace que existe apunta a su propia web, porque ese
+             redirect es su negocio.
+
+             Buscar el anuncio original por título y empresa es exactamente lo
+             que ella haría a mano. Se construye en el navegador: ni una llamada,
+             ni un token, ni una petición de cuota. -->
+        <a class="btn btn-buscar" id="btn-buscar" target="_blank" rel="noopener noreferrer">
+          Buscar el original
+          <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <circle cx="9" cy="9" r="5.2" stroke="currentColor" stroke-width="1.6"
+                    fill="none"/>
+            <path d="M12.8 12.8L17 17" stroke="currentColor" stroke-width="1.6"
+                  fill="none" stroke-linecap="round"/>
+          </svg>
+        </a>
+
+        <!-- EL AVISO SOLO SALE DONDE EL BLOQUEO ESTÁ MEDIDO, y hasta el 4
+             septiembre 2026 salía siempre. Con medio inventario alemán eso lo
+             convertía en ruido: sobre las páginas guardadas, abiertas desde
+             México, `adzuna.com` bloquea 247 de 248 (99,6%) y `adzuna.de`
+             bloquea CERO de 34 —y 33 traen su botón de postular—. Una
+             advertencia que no se cumple en la mitad de las fichas enseña a no
+             hacerle caso justo donde sí se cumple.
+             Ver data/reportes/2026-09-04-el-enlace-muerto/medicion.md.
+             Lo rellena `pintarFicha` en app.js. -->
+        <p class="pie-nota" id="pie-nota" hidden></p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ================= confirmación de gasto =================
+       LA REGLA DE LA CASA: la app nunca gasta sin haber enseñado antes el
+       número. Este diálogo es esa regla hecha pantalla. No hay ningún camino
+       que lance una corrida sin pasar por aquí. -->
+  <div id="confirmar" class="modal" hidden>
+    <div class="modal-fondo" data-cerrar-confirmar></div>
+
+    <div class="modal-caja caja-confirmar" role="dialog" aria-modal="true"
+         aria-labelledby="confirmar-titulo">
+      <div class="modal-scroll">
+        <div class="modal-cuerpo">
+          <h2 class="modal-titulo" id="confirmar-titulo">—</h2>
+
+          <div class="cifra" id="confirmar-cifra">
+            <span class="cifra-valor" id="confirmar-valor">—</span>
+            <span class="cifra-unidad" id="confirmar-unidad"></span>
+          </div>
+
+          <p class="confirmar-nota" id="confirmar-nota"></p>
+
+          <dl class="confirmar-datos" id="confirmar-datos"></dl>
+
+          <div class="confirmar-avisos" id="confirmar-avisos" hidden></div>
+
+          <ul class="confirmar-muestra" id="confirmar-muestra" hidden></ul>
+        </div>
+      </div>
+
+      <footer class="modal-pie">
+        <button class="btn" id="confirmar-no" data-cerrar-confirmar>No, déjalo</button>
+        <button class="btn btn-si" id="confirmar-si">Sí, adelante</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ================= dudas y ayuda =================
+       El texto NO está aquí: se pide a `/api/ayuda`, que lee `AYUDA.md`. El
+       archivo es el que se puede corregir desde España con una etiqueta;
+       copiarlo aquí dentro dejaría dos versiones y solo una se actualizaría.
+       (Antes decía además que el documento se imprime: se decidió no
+       imprimirlo el 7 sept 2026.) -->
+  <div id="ayuda" class="modal" hidden>
+    <div class="modal-fondo" data-cerrar-ayuda></div>
+
+    <div class="modal-caja caja-ayuda" role="dialog" aria-modal="true"
+         aria-labelledby="ayuda-titulo">
+      <button class="modal-cerrar" data-cerrar-ayuda aria-label="Cerrar">
+        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+          <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
+
+      <div class="modal-scroll">
+        <div class="modal-cuerpo">
+          <h2 class="modal-titulo" id="ayuda-titulo">Dudas y ayuda</h2>
+          <div class="ayuda-texto" id="ayuda-texto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= trabajo en curso ================= -->
+  <aside class="trabajo" id="trabajo" hidden aria-live="polite">
+    <div class="trabajo-alto">
+      <span class="spinner" id="trabajo-spinner" aria-hidden="true"></span>
+      <span class="trabajo-etiqueta" id="trabajo-etiqueta">—</span>
+      <!-- «paso 2 de 3» en una cadena. La barra de debajo es de CADA paso —el
+           recolector cuenta peticiones y el clasificador vacantes, y sumarlas
+           daría un porcentaje que no significa nada—, así que el avance de la
+           acción entera lo dice esto. -->
+      <span class="trabajo-paso" id="trabajo-paso" hidden></span>
+      <button class="trabajo-cerrar" id="trabajo-cerrar" aria-label="Cerrar" hidden>
+        <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+          <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="trabajo-barra" id="trabajo-barra" hidden>
+      <span id="trabajo-relleno"></span>
+    </div>
+
+    <p class="trabajo-linea" id="trabajo-linea"></p>
+    <p class="trabajo-final" id="trabajo-final" hidden></p>
+
+    <div class="trabajo-pie">
+      <button class="trabajo-boton" id="trabajo-detalle">Ver la salida</button>
+      <button class="trabajo-boton trabajo-parar" id="trabajo-parar">Parar</button>
+    </div>
+
+    <pre class="trabajo-salida" id="trabajo-salida" hidden></pre>
+  </aside>
+
+  <!-- ================= tus criterios =================
+       LOS CRITERIOS SE ESCRIBEN AQUÍ Y SE GUARDAN EN `data/`, NO EN EL YAML.
+       `config/cvs.yaml` está versionado, y el actualizador se niega a
+       actualizar una copia con cambios locales: guardarlos ahí le cortaría
+       las actualizaciones para siempre. Ver `clasificador/ajustes.py`. -->
+  <div id="ajustes" class="modal" hidden>
+    <div class="modal-fondo" data-cerrar-ajustes></div>
+    <div class="modal-caja modal-caja-ancha" role="dialog" aria-modal="true"
+         aria-labelledby="ajustes-titulo">
+      <button class="modal-cerrar" data-cerrar-ajustes aria-label="Cerrar">×</button>
+
+      <div class="modal-cuerpo">
+        <h2 class="modal-titulo" id="ajustes-titulo">Tus criterios</h2>
+
+        <p class="ajustes-intro">
+          Con tus palabras, y por orden de importancia: el de arriba manda
+          sobre el de abajo. El asistente los lee tal cual para decidir qué
+          poner primero. <strong>Cambiarlos no cuesta nada</strong> y no vuelve
+          a leer ninguna oferta.
+        </p>
+
+        <label class="ajustes-etiqueta" for="ajustes-criterios">
+          Uno por línea
+        </label>
+        <textarea id="ajustes-criterios" class="ajustes-texto" rows="9"
+                  spellcheck="true"></textarea>
+        <p class="ajustes-pista" id="ajustes-cuenta"></p>
+
+        <div class="ajustes-fila">
+          <label class="ajustes-etiqueta" for="ajustes-destacar">
+            Cuántas quieres ver destacadas arriba
+          </label>
+          <input type="number" id="ajustes-destacar" class="ajustes-numero"
+                 min="1" max="20" step="1">
+        </div>
+
+        <hr class="ajustes-sep">
+
+        <div class="ajustes-fila">
+          <label class="ajustes-check" for="ajustes-automatica">
+            <input type="checkbox" id="ajustes-automatica">
+            <span>Buscar, leer y ordenar solo, cada mañana</span>
+          </label>
+          <input type="time" id="ajustes-hora" class="ajustes-numero" step="300">
+        </div>
+        <p class="ajustes-pista">
+          Así lo encuentras hecho al abrir, sin esperar. Gasta dinero mientras
+          no estás delante: tiene su propio techo de
+          <strong id="ajustes-racion">$10.00</strong> al mes, aparte del de tus
+          botones, y al llegar te dice qué hizo y qué costó. Solo corre con el
+          portátil encendido y con tu sesión abierta.
+        </p>
+        <p class="ajustes-error" id="ajustes-error" hidden></p>
+      </div>
+
+      <footer class="modal-pie">
+        <button class="btn" id="ajustes-fabrica">Volver a los de fábrica</button>
+        <button class="btn btn-si" id="ajustes-guardar">Guardar</button>
+      </footer>
+    </div>
+  </div>
+
+  <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

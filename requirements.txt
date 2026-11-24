@@ -1,0 +1,18 @@
+# Dependencias minimas de la v0. Se mantiene corta a proposito:
+# esta sonda debe poder tirarse sin dolor.
+
+requests==2.32.3      # cliente HTTP contra Adzuna y Jooble
+# 6.0.2 no publica rueda para CPython 3.14 en Windows y obliga a compilar con
+# Visual C++; 6.0.3 sí la publica. Medido en la instalación real (7 sep 2026).
+PyYAML==6.0.3         # lectura del archivo de configuracion
+python-dotenv==1.0.1  # carga de .env (API keys y datos de la clienta)
+pytest==8.3.3         # tests offline sobre fixtures, sin red
+
+# --- v1: bandeja de revision (servidor local) ---
+fastapi==0.115.5      # API en localhost que sirve la bandeja
+uvicorn==0.32.1       # servidor ASGI que ejecuta FastAPI
+
+# --- v1: clasificacion con LLM (capa 2) ---
+anthropic==1.1.0      # SDK oficial. Nunca HTTP crudo contra la API
+# pydantic ya entra como dependencia de fastapi; se usa para la salida
+# estructurada del modelo (clasificador/esquema.py)

@@ -1,0 +1,204 @@
+# =============================================================================
+#  Fichas de CV — ruteo
+# =============================================================================
+#  PERFIL DE DEMOSTRACIÓN. Las fichas de abajo describen a un ejecutivo
+#  FICTICIO. Las de la clienta real viven solo en su máquina.
+#
+#  Por diseño, este archivo no lleva ningún dato personal: ni nombre, ni
+#  correo, ni teléfono, ni LinkedIn, ni empresas donde trabajó. Solo sector,
+#  puestos objetivo, palabras clave y qué NO encaja.
+#
+#  El archivo del CV vive en `data/cvs/` (ignorado por git) y el LLM NUNCA lo
+#  lee: clasifica leyendo esta ficha. Así el CV completo no sale nunca de la
+#  máquina del usuario.
+#
+#  Los nombres de archivo son genéricos (`cv_ejecutivo_es`) a propósito:
+#  «Nombre_Apellido_CV.docx» ya sería un dato personal dentro del repositorio.
+#
+#  Si el ruteo falla, se corrigen unas líneas de aquí, sin tocar código.
+# =============================================================================
+
+version: 1
+
+
+# -----------------------------------------------------------------------------
+#  UMBRAL DE CONFIANZA
+# -----------------------------------------------------------------------------
+#  Por debajo de este valor no se adivina: la oferta se marca como
+#  «necesita tu criterio» y decide el usuario en la bandeja.
+#
+#  Con un volumen bajo (unas pocas ofertas nuevas al día) conviene equivocarse
+#  por el lado de preguntar: una duda al día no cuesta nada, y una elección
+#  silenciosa y equivocada cuesta una oportunidad.
+# -----------------------------------------------------------------------------
+umbral_confianza: 0.70
+
+
+# -----------------------------------------------------------------------------
+#  PREFERENCIAS — cómo ordenar lo que sobrevive
+# -----------------------------------------------------------------------------
+#  Esto NO decide qué se descarta: eso ya lo hicieron los filtros y el
+#  clasificador. Decide QUÉ SE MIRA PRIMERO. El criterio está escrito en
+#  lenguaje natural y el modelo lo aplica.
+#
+#  Estas líneas NO entran en la huella de las fichas: cambiarlas reordena,
+#  pero no marca las clasificaciones como obsoletas ni provoca gasto de
+#  reclasificación. Ordenar es barato; reclasificar no.
+#
+#  Cuesta UNA llamada por ranking, no una por oferta.
+# -----------------------------------------------------------------------------
+preferencias:
+
+  # En orden de importancia. Se le pasan al modelo tal cual, así que van
+  # escritas como se le dirían a una persona.
+  criterios:
+    - "El nivel manda sobre el sector: una dirección general en un sector adyacente vale más que una gerencia en el suyo."
+    - "Logística, distribución y cadena de suministro van primero; manufactura y el resto del sector industrial después."
+    - "Una vacante publicada por el empleador directo vale más que la misma publicada por una agencia de reclutamiento."
+    - "Entre dos equivalentes, la más reciente."
+    - "Una vacante publicada en varias ciudades a la vez indica que la están buscando de verdad; súbela."
+
+  # Cuántas destacar arriba. Con pocas ofertas relevantes al día, una lista de
+  # veinte no es un asistente: es la misma bandeja con otro orden.
+  cuantas_destacar: 3
+
+
+# -----------------------------------------------------------------------------
+#  LOS CV
+# -----------------------------------------------------------------------------
+#  Aquí hay DOS fichas de la MISMA persona: lo único que las separa es el
+#  idioma del documento. Elegir CV es, por tanto, una decisión de idioma, y la
+#  dicta el idioma del ANUNCIO, no el mercado: un corporativo mexicano que
+#  publica en inglés espera el CV en inglés.
+#
+#  Para un tercer CV de otro sector basta con añadir otra ficha.
+# -----------------------------------------------------------------------------
+cvs:
+
+  - id: ejecutivo_es
+    nombre: "Ejecutivo de operaciones — español"
+    archivo: "data/cvs/cv_ejecutivo_es.docx"
+
+    idioma: es
+
+    sector: >
+      Logística y distribución, cadena de suministro, manufactura, operaciones
+      de almacén y transporte, comercio exterior y mejora continua.
+
+    puestos_objetivo:
+      - "Director General"
+      - "Directora General"
+      - "Director de Operaciones"
+      - "Directora de Operaciones"
+      - "Director de Logística"
+      - "Director de Cadena de Suministro"
+      - "Director de Planta"
+      - "Gerente General"
+      - "Director de Operaciones Interino"
+      - "Consultor"
+      - "Consultora"
+      - "Asesor"
+      - "Asesora"
+
+    palabras_clave:
+      - "cadena de suministro"
+      - "logística"
+      - "distribución"
+      - "centros de distribución"
+      - "transporte"
+      - "comercio exterior"
+      - "manufactura"
+      - "planeación de la demanda"
+      - "compras"
+      - "excelencia operativa"
+      - "mejora continua"
+      - "lean"
+      - "transformación organizacional"
+      - "gestión presupuestal"
+
+    seniority: >
+      Dirección general / C-level, 15+ años. Reporta a consejo, a CEO o a
+      inversionistas. Con equipos multidisciplinarios y presupuesto propio a
+      su cargo.
+
+    # Lo que SÍ interesa aunque el título no lo parezca: consultoría o
+    # direcciones interinas, siempre que la materia sea la suya. Un
+    # «consultor» de sistemas o de recursos humanos sigue sin encajar, y eso lo
+    # decide el modelo leyendo la descripción: por el título no se distinguen.
+    tambien_aplica:
+      - "Consultoría independiente en operaciones, logística o cadena de suministro"
+      - "Direcciones interinas o a tiempo parcial (interim, fractional)"
+      - "Asesoría a consejos o a dirección general en su sector"
+
+    # Redactado a partir del ruido real que deja pasar la búsqueda: roles que
+    # sobreviven porque los términos aparecen de refilón en la descripción
+    # («reports to the CEO, COO or CFO»).
+    no_aplica:
+      - "Puestos técnicos o de ingeniería sin responsabilidad de dirección"
+      - "Analista, especialista o coordinador; cualquier rol individual sin equipo a cargo"
+      - "Desarrollo de software, TI y datos"
+      - "Analistas financieros, de crédito, de inversión o de riesgos"
+      - "Ventas, desarrollo de negocio con cuota comercial, y reclutamiento"
+      - "Becas, prácticas y puestos de entrada"
+
+  - id: ejecutivo_en
+    nombre: "Chief Operations Executive — inglés"
+    archivo: "data/cvs/cv_ejecutivo_en.docx"
+
+    idioma: en
+
+    sector: >
+      Logistics and distribution, supply chain, manufacturing, warehouse and
+      transportation operations, international trade and continuous improvement.
+
+    puestos_objetivo:
+      - "Chief Operating Officer"
+      - "COO"
+      - "Chief Operations Executive"
+      - "VP Operations"
+      - "VP Supply Chain"
+      - "Head of Operations"
+      - "Director of Operations"
+      - "Logistics Director"
+      - "Supply Chain Director"
+      - "Plant Director"
+      - "General Manager"
+      - "Managing Director"
+      - "Country Manager"
+      - "Interim COO"
+      - "Fractional COO"
+      - "Consultant"
+      - "Advisor"
+
+    palabras_clave:
+      - "supply chain"
+      - "logistics"
+      - "distribution"
+      - "distribution centers"
+      - "transportation"
+      - "international trade"
+      - "manufacturing"
+      - "demand planning"
+      - "procurement"
+      - "operational excellence"
+      - "continuous improvement"
+      - "lean"
+      - "business transformation"
+      - "budget ownership"
+
+    seniority: >
+      C-level / general management, 15+ years. Reports to a board, a CEO or
+      investors. Owns multidisciplinary teams and a large operating budget.
+
+    tambien_aplica:
+      - "Independent consulting in operations, logistics or supply chain"
+      - "Interim and fractional executive engagements"
+      - "Board or C-suite advisory within their sector"
+
+    no_aplica:
+      - "Technical or engineering roles without executive responsibility"
+      - "Analyst, specialist or individual-contributor roles with no team"
+      - "Software engineering, IT and data roles"
+      - "Financial, credit, investment or risk analysts"
+      - "Sales, quota-carrying business development, and recruiting"
+      - "Internships and entry-level positions"

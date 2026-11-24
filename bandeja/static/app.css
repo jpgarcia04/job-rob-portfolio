@@ -1,0 +1,1944 @@
+/* =========================================================================
+   Bandeja de ofertas — estilos
+
+   Dirección: oscuro premium. La sensación de "otro nivel" viene del trato de
+   las superficies, no de meter más color:
+
+     · fondo con profundidad (degradado ambiental, no un gris plano)
+     · cada tarjeta es una superficie con degradado propio y un borde que
+       recoge luz por arriba, como si la luz cayera de lo alto
+     · transiciones cortas y con curva, nunca lineales
+     · el acento (latón) se usa poquísimo, para que cuando aparezca signifique algo
+
+   Tema único y deliberado: oscuro. No hay tema claro porque es una
+   aplicación, no una página, y comprometerse con un solo mundo visual da un
+   resultado más coherente que intentar servir los dos.
+   ========================================================================= */
+
+:root {
+  /* --- fondos, del más profundo al más elevado --- */
+  --fondo:        #080A0E;
+  --superficie:   #12161E;
+  --superficie-2: #171C26;
+  --elevado:      #1A202B;
+
+  /* --- bordes: por arriba recogen luz, por abajo se apagan --- */
+  --borde:        rgba(255, 255, 255, .07);
+  --borde-alto:   rgba(255, 255, 255, .13);
+  --borde-luz:    rgba(255, 255, 255, .20);
+
+  /* --- texto --- */
+  --tinta:        #EEF1F6;
+  --tinta-2:      #98A3B4;
+  --tinta-3:      #616C7D;
+
+  /* --- acento: latón apagado. Nunca saturado, nunca dorado de bisutería --- */
+  --acento:       #C9A56B;
+  --acento-suave: rgba(201, 165, 107, .13);
+  --acento-borde: rgba(201, 165, 107, .32);
+
+  /* --- estados --- */
+  --si:           #52C09A;
+  --si-suave:     rgba(82, 192, 154, .12);
+  --si-borde:     rgba(82, 192, 154, .30);
+  --no:           #DE8175;
+  --no-suave:     rgba(222, 129, 117, .11);
+  --no-borde:     rgba(222, 129, 117, .28);
+
+  /* --- movimiento --- */
+  --curva:        cubic-bezier(.22, .61, .36, 1);
+  --rapido:       .16s var(--curva);
+  --medio:        .26s var(--curva);
+
+  --radio:        14px;
+  --radio-s:      9px;
+
+  --sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- brillo ambiental ----------
+   Dos manchas de luz muy tenues detrás de todo. Es lo que evita que el fondo
+   se lea como un gris plano y da la sensación de profundidad. */
+
+.ambiente {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(900px 500px at 15% -5%,  rgba(201, 165, 107, .07), transparent 60%),
+    radial-gradient(800px 500px at 88% 8%,   rgba(82, 140, 192, .06), transparent 62%);
+}
+
+/* ---------- cabecera ---------- */
+
+/* ---------- cabecera ----------
+   SOLO LA PRIMERA FILA SE QUEDA FIJA (3 septiembre 2026).
+
+   La cabecera entera era `sticky` y mide 189 px: sobre una pantalla de 720
+   son el 26%, robado durante toda la sesión. Y lo que ocupaba ese espacio
+   —los filtros del sistema y los tres botones que gastan— son cosas que se
+   usan ANTES de ponerse a leer, no mientras se lee: quedarse fijas encima de
+   cada oferta era pagar un cuarto de pantalla por algo que se toca una vez.
+
+   Ahora se queda fija la fila que sí hace falta siempre: quién eres, en qué
+   estado estás mirando, qué mercado, y cuánto llevas gastado. Son 76 px, un
+   60% menos, y lo demás está a un scroll — no escondido, que es la diferencia
+   que importa. */
+
+.cabecera { z-index: 20; }
+
+.barra-fija {
+  position: sticky;
+  top: 0;
+  z-index: 21;
+  background: rgba(8, 10, 14, .88);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--borde);
+}
+
+/* La fila fija lleva cuatro cosas donde antes había tres, así que hay que
+   apretarla o se parte en dos líneas y el ahorro de altura se pierde entero.
+   Se aprieta por donde no cuesta información: el hueco entre bloques, y el
+   subtítulo, que se recorta con puntos suspensivos porque es contexto y no
+   dato. Los tres filtros y la barra de gasto no se encogen. */
+/* EL HUECO ENTRE BLOQUES, APRETADO DE 20 A 14 (22 septiembre 2026).
+
+   Con el tercer mercado, a 1360 px —el ancho de la ventana real— la fila pedía
+   1.191 px y el hueco útil son 1.176 (1.240 menos los 32 px de padding a cada
+   lado). Sobraban 15 px, y como `.marca` tiene `flex-shrink: 6` los pagaba
+   entero el subtítulo: se quedaba en «477 anuncios · 3 merca…».
+
+   Se quita de los tres huecos (18 px) y no del padding ni de los bloques,
+   porque es lo único de esta fila que no lleva información — justo lo que dice
+   el comentario de aquí arriba. Queda 1.173 contra 1.176. */
+.barra-fija .cabecera-interior { gap: 14px; }
+.barra-fija .marca { min-width: 0; }
+.barra-fija .marca-texto { min-width: 0; }
+.barra-fija .marca-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.barra-fija .filtros { flex: 0 0 auto; flex-wrap: nowrap; }
+.barra-fija .campo-mercado { flex: 0 1 auto; min-width: 0; }
+.barra-fija .presupuesto { flex: 0 0 auto; }
+
+/* EL CONTADOR SE ENCIMABA CON EL SELECTOR DE MERCADO.
+   Medido el 11 septiembre 2026 en la ventana de la app (1360 px, que es lo
+   que abre `abrir_ventana`):
+
+     sitio disponible en la cabecera ...... 1.176 px
+     lo que pide su contenido ............. 1.215 px
+     faltan ...............................    39 px
+
+   Al faltar sitio, flexbox encogía `.campo-mercado` (137 px) — pero el
+   `<select>` de dentro conserva su ancho propio (177 px, el de la opción más
+   larga), así que se salía 40 px de su caja y se metía 20 px por debajo de
+   «$0.00 gastados en septiembre». Las dos cosas encima, y el número del
+   dinero es justo el que no puede leerse a medias.
+
+   Dos líneas, y cada una arregla una mitad:
+
+   1. QUE CEDA EL QUE SABE CEDER. `.marca-sub` ya recorta con puntos
+      suspensivos («344 anuncios · Alemania · T…»), así que se le da seis
+      veces más peso de encogido, para que absorba el hueco entero y el
+      selector conserve su texto. Antes se repartía al revés.
+
+   2. QUE EL SELECTOR NO PUEDA SALIRSE. `max-width: 100%` es la garantía
+      dura: pase lo que pase con el ancho de la ventana, el desplegable se
+      queda dentro de su caja y no puede volver a pisar nada. Sin esto, la
+      línea de arriba solo mueve el problema a una ventana más estrecha. */
+.barra-fija .marca { flex-shrink: 6; }
+.barra-fija #mercado { max-width: 100%; }
+
+.cabecera-resto {
+  background: rgba(8, 10, 14, .78);
+  border-bottom: 1px solid var(--borde);
+}
+
+.cabecera-interior {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.marca { display: flex; align-items: center; gap: 13px; }
+
+.marca-icono {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: linear-gradient(150deg, #E0C48E 0%, var(--acento) 45%, #8A6E3F 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .35),
+    0 4px 14px rgba(201, 165, 107, .22);
+}
+
+.marca-texto { display: flex; flex-direction: column; line-height: 1.25; }
+
+.marca-nombre {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.marca-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--tinta-3);
+  letter-spacing: .01em;
+}
+
+/* --- filtros --- */
+
+.filtros {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
+  border: 1px solid var(--borde);
+}
+
+.filtro {
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--tinta-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 7px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+  transition: color var(--rapido), background var(--rapido), border-color var(--rapido);
+}
+
+.filtro:hover { color: var(--tinta); background: rgba(255, 255, 255, .04); }
+
+.filtro.activo {
+  color: var(--tinta);
+  font-weight: 600;
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.045));
+  border-color: var(--borde-alto);
+  box-shadow: inset 0 1px 0 var(--borde-luz), 0 2px 8px rgba(0,0,0,.28);
+}
+
+.filtro:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+.pastilla {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--tinta-3);
+  background: rgba(0, 0, 0, .34);
+  border-radius: 5px;
+  padding: 2px 6px;
+  transition: color var(--rapido);
+}
+.filtro.activo .pastilla { color: var(--acento); }
+
+/* --- selector de mercado --- */
+
+.campo-mercado { margin-left: auto; }
+
+#mercado {
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--tinta-2);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)),
+    var(--superficie);
+  border: 1px solid var(--borde-alto);
+  border-radius: 10px;
+  padding: 9px 13px;
+  cursor: pointer;
+  transition: border-color var(--rapido), color var(--rapido);
+}
+#mercado:hover { border-color: var(--borde-luz); color: var(--tinta); }
+#mercado:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+#mercado option { background: var(--elevado); color: var(--tinta); }
+
+/* ---------- contenido ---------- */
+
+.contenido {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 38px 32px 80px;
+}
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 980px) {
+  .rejilla { grid-template-columns: 1fr; }
+  .cabecera-interior { padding: 0 20px; gap: 18px; }
+  .contenido { padding: 26px 20px 60px; }
+}
+
+/* ---------- tarjeta ----------
+   El degradado va en diagonal (162°) y el borde superior es más claro que el
+   resto: juntos simulan una superficie física con luz cayendo de arriba. */
+
+.tarjeta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px 20px;
+  border-radius: var(--radio);
+  border: 1px solid var(--borde);
+  background: linear-gradient(162deg, var(--superficie-2) 0%, var(--superficie) 58%, #0F131A 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .055),
+    0 1px 2px rgba(0, 0, 0, .35),
+    0 10px 26px rgba(0, 0, 0, .22);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform var(--medio),
+    border-color var(--medio),
+    box-shadow var(--medio);
+}
+
+/* Filo de acento que aparece arriba al pasar el ratón. */
+.tarjeta::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--acento-borde) 32%,
+                                       var(--acento-borde) 68%, transparent);
+  opacity: 0;
+  transition: opacity var(--medio);
+}
+
+.tarjeta:hover {
+  transform: translateY(-3px);
+  border-color: var(--borde-alto);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .085),
+    0 2px 4px rgba(0, 0, 0, .35),
+    0 18px 40px rgba(0, 0, 0, .38);
+}
+.tarjeta:hover::before { opacity: 1; }
+
+.tarjeta:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+
+.t-alto {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.t-titulo {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.022em;
+  line-height: 1.32;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.t-fecha {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  color: var(--tinta-3);
+  white-space: nowrap;
+  padding-top: 3px;
+  flex-shrink: 0;
+}
+
+.t-empresa {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tinta-2);
+  margin: -4px 0 0;
+}
+
+.t-lugar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--tinta-3);
+}
+.t-lugar svg { flex-shrink: 0; opacity: .8; }
+
+
+.t-pie {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde);
+}
+
+/* ---------- etiquetas ---------- */
+
+.etiqueta {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.etiqueta.mercado {
+  color: var(--tinta-3);
+  border-color: var(--borde-alto);
+  background: rgba(255, 255, 255, .022);
+}
+
+.etiqueta.salario {
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--acento);
+  background: var(--acento-suave);
+  border-color: var(--acento-borde);
+}
+
+.etiqueta.si {
+  color: var(--si);
+  background: var(--si-suave);
+  border-color: var(--si-borde);
+}
+
+.etiqueta.no {
+  color: var(--no);
+  background: var(--no-suave);
+  border-color: var(--no-borde);
+}
+
+/* ---------- vacío y carga ---------- */
+
+.vacio { padding: 90px 20px; text-align: center; }
+.vacio[hidden] { display: none; }
+
+.vacio-icono {
+  width: 52px; height: 52px;
+  margin: 0 auto 20px;
+  border-radius: 15px;
+  border: 1px solid var(--borde-alto);
+  background: linear-gradient(160deg, var(--superficie-2), var(--superficie));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.vacio-titulo {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+  margin: 0 0 6px;
+}
+.vacio-texto {
+  font-size: 14px;
+  color: var(--tinta-3);
+  margin: 0 auto;
+  max-width: 46ch;
+  line-height: 1.6;
+  /* El texto del primer arranque lleva un salto de línea a propósito: una cosa
+     es lo que pasa y otra qué hacer, y juntas en un párrafo no se leen. */
+  white-space: pre-line;
+}
+
+/* En el primer arranque, el botón que lo arregla va DENTRO del hueco vacío.
+   Está también en la cabecera, pero pedirle que lo busque ahí arriba es
+   pedirle que sepa lo que busca. */
+.vacio-boton { margin-top: 22px; }
+.vacio-boton[hidden] { display: none; }
+
+.cargando {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 20px;
+  color: var(--tinta-3);
+  font-size: 14px;
+}
+.cargando[hidden] { display: none; }
+
+.spinner {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--borde-alto);
+  border-top-color: var(--acento);
+  animation: gira .7s linear infinite;
+}
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* ---------- modal ---------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+.modal[hidden] { display: none; }
+
+.modal-fondo {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 9, .72);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  animation: entraFondo var(--rapido) both;
+}
+@keyframes entraFondo { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-caja {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(86vh, 900px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  border: 1px solid var(--borde-alto);
+  background: linear-gradient(168deg, var(--elevado) 0%, var(--superficie) 62%, #0E1219 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .09),
+    0 30px 90px rgba(0, 0, 0, .6),
+    0 6px 20px rgba(0, 0, 0, .4);
+  overflow: hidden;
+  animation: entraCaja var(--medio) both;
+}
+@keyframes entraCaja {
+  from { opacity: 0; transform: translateY(14px) scale(.975); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal-cerrar {
+  position: absolute;
+  top: 18px; right: 18px;
+  z-index: 2;
+  width: 34px; height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--tinta-2);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color var(--rapido), background var(--rapido), border-color var(--rapido);
+}
+.modal-cerrar:hover {
+  color: var(--tinta);
+  background: rgba(255, 255, 255, .1);
+  border-color: var(--borde-luz);
+}
+.modal-cerrar:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+/* El scroll vive AQUÍ y solo aquí: la página nunca tiene dos barras a la vez. */
+.modal-scroll { overflow-y: auto; flex: 1; min-height: 0; }
+
+.modal-cuerpo { padding: 34px 38px 30px; }
+
+.modal-marcas { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+
+.modal-titulo {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -.032em;
+  line-height: 1.2;
+  margin: 0 0 8px;
+  padding-right: 40px;
+  text-wrap: balance;
+}
+
+.modal-empresa {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--acento);
+  margin: 0 0 26px;
+}
+
+.modal-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 20px 26px;
+  margin: 0 0 26px;
+  padding: 20px 22px;
+  border-radius: var(--radio-s);
+  border: 1px solid var(--borde);
+  background: rgba(0, 0, 0, .22);
+}
+
+.dato { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+.dato dt {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+}
+
+.dato dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.dato dd.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.modal-nota {
+  font-size: 12.5px;
+  color: var(--tinta-3);
+  margin: -14px 0 24px;
+  padding: 10px 14px;
+  border-radius: var(--radio-s);
+  border: 1px solid var(--borde);
+  background: rgba(255, 255, 255, .022);
+}
+.modal-nota[hidden] { display: none; }
+
+/* EL TEXTO DEL ANUNCIO. Plegado, y con el título diciendo lo que es.
+   Antes era un bloque de 15px al final de la ficha, sin etiqueta, justo
+   debajo del veredicto en español: parecía la segunda mitad de lo que había
+   escrito el modelo. Es texto ajeno y llega cortado, así que se presenta
+   como lo que es y no ocupa la última pantalla de la ficha. */
+.modal-desc {
+  border-top: 1px solid var(--borde);
+  padding-top: 16px;
+  max-width: 62ch;
+}
+
+.modal-desc-titulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tinta-3);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  transition: color var(--rapido);
+}
+.modal-desc-titulo::-webkit-details-marker { display: none; }
+.modal-desc-titulo:hover { color: var(--tinta-2); }
+.modal-desc-titulo:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+
+/* El triángulo, dibujado en CSS para no meter otro SVG por un adorno. */
+.modal-desc-titulo::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform var(--rapido);
+}
+.modal-desc[open] .modal-desc-titulo::before { transform: rotate(90deg); }
+
+.modal-desc-texto {
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--tinta-2);
+  white-space: pre-wrap;
+  margin-top: 12px;
+}
+
+.modal-pie {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 18px 38px;
+  border-top: 1px solid var(--borde);
+  background: rgba(0, 0, 0, .3);
+}
+
+/* ---------- botones ---------- */
+
+.btn {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--borde-alto);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  color: var(--tinta);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform var(--rapido), border-color var(--rapido),
+              background var(--rapido), box-shadow var(--rapido), color var(--rapido);
+}
+.btn:hover { transform: translateY(-1px); border-color: var(--borde-luz); }
+.btn:active { transform: translateY(0); }
+.btn:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+.btn-si {
+  color: #06231B;
+  border-color: transparent;
+  background: linear-gradient(180deg, #6FD5B2 0%, var(--si) 55%, #35997A 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 4px 14px rgba(82,192,154,.22);
+}
+.btn-si:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 7px 20px rgba(82,192,154,.32); }
+
+.btn-no:hover { color: var(--no); border-color: var(--no-borde); background: var(--no-suave); }
+
+/* «Ya me postulé». En verde apagado y no en verde lleno como «Me interesa»:
+   son dos pasos del mismo camino y el primero es el que se pulsa a diario. */
+.btn-postulada:hover {
+  color: var(--si);
+  border-color: var(--si-borde);
+  background: var(--si-suave);
+}
+
+.btn.marcado {
+  box-shadow: inset 0 0 0 1px currentColor;
+  opacity: .82;
+}
+
+.modal-pie .btn-abrir { margin-left: auto; }
+
+/* Discreto a propósito: es la salida de emergencia, no el camino principal.
+   Si el enlace de la fuente funciona, ese es el que hay que pulsar. */
+.btn-buscar {
+  font-weight: 500;
+  color: var(--tinta-2);
+}
+.btn-buscar:hover { color: var(--tinta); }
+
+.pie-nota {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tinta-3);
+  max-width: 62ch;
+}
+
+/* ---------- aviso ---------- */
+
+.aviso {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 11px;
+  border: 1px solid var(--borde-alto);
+  background: linear-gradient(180deg, var(--elevado), var(--superficie));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 40px rgba(0,0,0,.55);
+  transform: translateX(-50%);
+}
+.aviso[hidden] { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .aviso { animation: entraAviso .22s var(--curva) both; }
+  @keyframes entraAviso {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+}
+
+/* Quien pida menos movimiento, no lo tiene. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+  html { scroll-behavior: auto; }
+  .tarjeta:hover { transform: none; }
+}
+
+@media (max-width: 640px) {
+  .modal-cuerpo { padding: 26px 22px 22px; }
+  .modal-pie { padding: 14px 22px; }
+  .modal-titulo { font-size: 22px; }
+  .modal-pie .btn-abrir { margin-left: 0; }
+}
+
+/* =========================================================================
+   CAPA 2 — lo que decidió el clasificador
+
+   El acento (latón) se reserva aquí para UNA cosa: "esto necesita tu
+   criterio". Es coherente con la regla de la casa — el acento se usa
+   poquísimo para que cuando aparezca signifique algo — y aquí significa
+   exactamente eso: el sistema no se atrevió a decidir solo.
+
+   Las relevantes NO llevan color de acento. Que el sistema acierte es lo
+   normal; lo que tiene que saltar a la vista es lo que le pide algo a ella.
+   ========================================================================= */
+
+/* ---------- segunda fila de la cabecera ---------- */
+
+.fila-relevancia {
+  height: 52px;
+  border-top: 1px solid var(--borde);
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.filtros-rel .filtro { font-size: 12.5px; padding: 6px 12px; }
+
+/* La fila de zonas es gemela de la de relevancia: misma altura, misma letra,
+   misma etiqueta a la izquierda. Son dos filtros del mismo nivel. */
+.fila-zona {
+  height: 52px;
+  border-top: 1px solid var(--borde);
+  justify-content: space-between;
+  gap: 18px;
+}
+.filtros-zona .filtro { font-size: 12.5px; padding: 6px 12px; }
+/* `.cabecera-interior` es `display: flex`, y eso gana al `hidden` del
+   navegador: sin esta línea la fila saldría vacía con Alemania elegida. */
+.fila-zona[hidden] { display: none; }
+
+.filtro-criterio.activo {
+  color: var(--acento);
+  border-color: var(--acento-borde);
+  background: var(--acento-suave);
+}
+
+/* Quién firma la fila. Va en minúscula y apagado a propósito: es una
+   aclaración, no un control, y compite con seis botones al lado. */
+.fila-quien {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+/* ---------- la tarjeta cambia de peso según el veredicto ---------- */
+
+/* El ruido no se oculta: se apaga. Ella tiene que poder comprobar que el
+   sistema descartó bien, o dejará de fiarse de que descarte. */
+.tarjeta.v-ruido { opacity: .52; }
+.tarjeta.v-ruido:hover { opacity: 1; }
+
+/* Lo que le pide una decisión lleva una línea de acento a la izquierda. */
+.tarjeta.v-criterio,
+.tarjeta.v-fallida {
+  border-left: 2px solid var(--acento-borde);
+}
+
+.t-razon {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tinta-2);
+  margin: 2px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------- etiquetas del veredicto ---------- */
+
+.etiqueta.ver-relevante {
+  color: var(--si);
+  background: var(--si-suave);
+  border-color: var(--si-borde);
+}
+
+.etiqueta.ver-criterio,
+.etiqueta.ver-fallida {
+  color: var(--acento);
+  background: var(--acento-suave);
+  border-color: var(--acento-borde);
+}
+
+.etiqueta.ver-ruido {
+  color: var(--tinta-3);
+  border-color: var(--borde);
+}
+
+.etiqueta.cv {
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta-2);
+  border-color: var(--borde-alto);
+  background: rgba(255, 255, 255, .03);
+}
+
+.etiqueta.grupo,
+.etiqueta.agencia {
+  color: var(--tinta-3);
+  border-color: var(--borde-alto);
+  background: rgba(255, 255, 255, .022);
+}
+
+/* ---------- el veredicto dentro del modal ---------- */
+
+.veredicto {
+  margin: 20px 0 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--superficie-2);
+}
+
+.veredicto-alto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.veredicto-marca {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.veredicto-confianza {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--tinta-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.veredicto-razon {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--tinta);
+}
+
+.veredicto-duda {
+  margin: 10px 0 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--acento-borde);
+  font-size: 13px;
+  line-height: 1.58;
+  color: var(--tinta-2);
+}
+
+.veredicto-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 30px;
+  margin: 14px 0 0;
+  padding-top: 13px;
+  border-top: 1px solid var(--borde);
+}
+
+/* ---------- los otros anuncios de la misma vacante ---------- */
+
+.grupo {
+  margin: 4px 0 10px;
+  padding: 15px 18px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: rgba(255, 255, 255, .018);
+}
+
+.grupo-titulo {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.grupo-motivo {
+  margin: 5px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--tinta-3);
+}
+
+.grupo-lista {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.grupo-lista li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--tinta-2);
+}
+
+.grupo-lugar {
+  min-width: 178px;
+  color: var(--tinta);
+}
+
+.grupo-titulo-item {
+  color: var(--tinta-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grupo-enlace {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--acento);
+  text-decoration: none;
+  border-bottom: 1px solid var(--acento-borde);
+}
+.grupo-enlace:hover { border-bottom-color: var(--acento); }
+
+@media (max-width: 720px) {
+  .fila-relevancia,
+  .fila-zona { height: auto; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+  .grupo-lista li { flex-direction: column; gap: 2px; }
+  .grupo-lugar { min-width: 0; }
+}
+
+
+/* =========================================================================
+   LA BANDEJA DEJA DE SER SOLO LECTURA
+
+   Tres cosas nuevas, y las tres obedecen a la misma regla: que se vea lo que
+   está pasando y lo que va a costar, ANTES de que cueste.
+
+     · la fila de acciones y el estado del presupuesto
+     · la confirmación con la cifra, que es la regla de la casa hecha pantalla
+     · el panel del trabajo en curso, porque noventa segundos sin señal
+       parecen un cuelgue
+
+   Y una cuarta que es la importante: el aspecto de una oferta APLAZADA. No
+   puede parecerse a una descartada. Se le da el mismo peso visual que a una
+   sin clasificar, con su puesto del triaje a la vista.
+   ========================================================================= */
+
+/* ---------- fila de acciones ---------- */
+
+.fila-acciones {
+  height: 60px;
+  border-top: 1px solid var(--borde);
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.acciones { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.btn-accion { font-size: 13px; padding: 9px 14px; }
+
+/* «PONME AL DÍA»: EL ÚNICO CON ACENTO, Y POR ESO LO TIENE.
+   El latón se usa poquísimo en esta interfaz para que cuando aparezca
+   signifique algo, y aquí significa «este es el que hay que pulsar». Los otros
+   tres siguen ahí porque hacen falta —cuando la cadena no cabe entera en el
+   tope, lo que queda fuera solo se lanza desde el suyo—, pero dejar los cuatro
+   iguales sería volver a la pregunta que este cambio quita de en medio: ¿cuál
+   pulso primero? */
+.btn-al-dia {
+  color: #241A08;
+  border-color: transparent;
+  font-weight: 650;
+  background: linear-gradient(180deg, #E0C48F 0%, var(--acento) 55%, #A8834A 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.38), 0 4px 14px rgba(201,165,107,.20);
+}
+.btn-al-dia:hover {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.48), 0 7px 20px rgba(201,165,107,.30);
+}
+.btn-al-dia svg { opacity: .95; }
+
+/* Separa el camino normal de los tres botones sueltos. Una línea basta: son
+   la misma familia de acciones, no dos zonas distintas de la pantalla. */
+.acciones-separador {
+  width: 1px;
+  height: 22px;
+  background: var(--borde-alto);
+  margin: 0 2px;
+}
+.btn-accion:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-accion svg { opacity: .75; }
+
+/* El gasto del mes, siempre visible. No hace falta enterarse por la factura. */
+.presupuesto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--tinta-3);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.presupuesto-barra {
+  display: block;
+  width: 74px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .07);
+  overflow: hidden;
+}
+
+.presupuesto-barra > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: var(--si);
+  transition: width var(--medio), background var(--medio);
+}
+
+/* Al pasar del umbral de aviso deja de ser verde. Antes de agotarse, no
+   después: un aviso que llega con la caja vacía no es un aviso. */
+.presupuesto.avisa .presupuesto-barra > span { background: var(--acento); }
+.presupuesto.agotado .presupuesto-barra > span { background: var(--no); }
+.presupuesto.agotado { color: var(--no); }
+
+/* ---------- por dónde empezar ---------- */
+
+.ranking {
+  margin: 0 0 30px;
+  padding: 24px 26px;
+  border: 1px solid var(--borde-alto);
+  border-radius: var(--radio);
+  background: linear-gradient(180deg, var(--elevado), var(--superficie));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.ranking[hidden] { display: none; }
+
+.ranking-alto {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.ranking-titulo {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+}
+
+.ranking-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--tinta-3);
+}
+
+.ranking-plegar {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--tinta-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.ranking-plegar:hover { color: var(--tinta); }
+
+/* EL AVISO DE QUE EL ORDEN SE HA QUEDADO ATRÁS.
+   Va ANTES de la lectura, no después: si fuera detrás, quien lee el orden lo
+   encontraría cuando ya se ha fiado de él. Y no se pinta de rojo —no está
+   roto, está viejo— sino con el latón, que en esta interfaz significa
+   «esto pide algo de ti». */
+.ranking-viejo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border: 1px solid var(--acento-borde);
+  border-radius: var(--radio-s);
+  background: var(--acento-suave);
+}
+
+.ranking-viejo-texto {
+  margin: 0;
+  flex: 1 1 260px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tinta);
+}
+
+.btn-rehacer {
+  font-size: 12.5px;
+  padding: 7px 13px;
+  color: var(--acento);
+  border-color: var(--acento-borde);
+  background: transparent;
+}
+.btn-rehacer:hover { background: var(--acento-suave); }
+.btn-rehacer:disabled { opacity: .42; cursor: not-allowed; transform: none; }
+
+/* Lo que el orden dejó fuera. Mismo peso visual que el aviso de
+   envejecimiento: los dos acotan lo que se está leyendo, así que uno no puede
+   verse como una nota al pie y el otro como una alarma. */
+.ranking-recorte {
+  margin: 0 0 .75rem;
+  padding: .55rem .7rem;
+  border-left: 3px solid var(--aviso, #c08a2e);
+  background: var(--aviso-fondo, #fdf6e6);
+  border-radius: 3px;
+  font-size: .875rem;
+  line-height: 1.45;
+  color: var(--texto-suave, #4a4a4a);
+}
+
+.ranking-lectura {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.66;
+  color: var(--tinta);
+  white-space: pre-line;
+}
+
+.ranking-patrones {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ranking-patrones li {
+  padding-left: 14px;
+  border-left: 2px solid var(--acento-borde);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tinta-2);
+}
+
+.ranking-lista {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ranking-item {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 4px 12px;
+  padding: 10px 10px 10px 4px;
+  border-radius: var(--radio-s);
+  cursor: pointer;
+  transition: background var(--rapido);
+}
+.ranking-item:hover { background: rgba(255, 255, 255, .035); }
+
+.ranking-puesto {
+  grid-row: span 2;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--tinta-3);
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+
+/* El único acento de la lista: lo que el asistente dice que va primero. */
+.ranking-item.accion-postular_ya .ranking-puesto { color: var(--si); }
+
+.ranking-nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.ranking-empresa {
+  font-weight: 400;
+  color: var(--tinta-3);
+}
+
+.ranking-porque {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tinta-2);
+}
+
+/* ---------- explicación del filtro ---------- */
+
+.explicacion {
+  margin: 0 0 22px;
+  padding: 14px 18px;
+  border: 1px solid var(--borde);
+  border-left: 2px solid var(--acento-borde);
+  border-radius: var(--radio-s);
+  background: rgba(255, 255, 255, .018);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tinta-2);
+}
+.explicacion[hidden] { display: none; }
+
+/* ---------- lo que no cabe en esta pantalla ----------
+   Mismo cuerpo que `.explicacion` —es información del filtro, no una alarma—
+   pero con el borde del acento, porque aquí sí falta algo. No es rojo a
+   propósito: nada está roto ni se ha perdido, y pintarlo de fallo enseñaría a
+   ignorarlo. */
+.recorte {
+  margin: 0 0 22px;
+  padding: 14px 18px;
+  border: 1px solid var(--borde);
+  border-left: 2px solid var(--acento);
+  border-radius: var(--radio-s);
+  background: rgba(255, 255, 255, .018);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tinta-2);
+}
+.recorte[hidden] { display: none; }
+
+/* ---------- lo que dijo el triaje ----------
+   APLAZADA NO ES DESCARTADA. Por eso esta tarjeta no se apaga como la de
+   ruido, que baja a opacidad .52: se queda a plena luz y con una marca
+   propia. Lo único que la distingue de una relevante es que su motivo viene
+   de mirar el título por encima, no de leer el anuncio. */
+
+.etiqueta.ver-aplazada {
+  color: var(--tinta-2);
+  border-color: var(--borde-luz);
+  background: rgba(255, 255, 255, .04);
+}
+
+.tarjeta.v-aplazada { border-left: 2px solid var(--borde-luz); }
+
+.t-triaje {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tinta-2);
+}
+
+.t-triaje-puesto {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--tinta-3);
+  border: 1px solid var(--borde-alto);
+  border-radius: 5px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.t-triaje-texto {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.triaje {
+  margin: 20px 0 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--superficie-2);
+}
+
+.triaje-alto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.triaje-marca {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 6px;
+  color: var(--tinta-2);
+  border: 1px solid var(--borde-luz);
+  background: rgba(255, 255, 255, .04);
+}
+
+.triaje-puesto {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--tinta-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.triaje-porque {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--tinta);
+}
+
+.triaje-nota {
+  margin: 12px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--borde);
+  font-size: 12.5px;
+  line-height: 1.58;
+  color: var(--tinta-3);
+}
+
+.btn-leer {
+  color: var(--acento);
+  border-color: var(--acento-borde);
+  background: var(--acento-suave);
+}
+.btn-leer:hover { border-color: var(--acento); }
+.btn-leer[hidden] { display: none; }
+.btn-leer:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ---------- confirmación de gasto ---------- */
+
+.caja-confirmar { max-width: 560px; }
+
+.cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 20px 0 6px;
+}
+
+.cifra-valor {
+  font-family: var(--mono);
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: -.03em;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+}
+
+.cifra-unidad {
+  font-size: 13px;
+  color: var(--tinta-3);
+}
+
+.confirmar-nota {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.62;
+  color: var(--tinta-2);
+}
+
+.confirmar-datos {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 9px 20px;
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--superficie-2);
+}
+
+.confirmar-datos dt {
+  font-size: 13px;
+  color: var(--tinta-2);
+}
+
+.confirmar-datos dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--tinta);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.confirmar-avisos {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.confirmar-avisos[hidden] { display: none; }
+
+.confirmar-aviso {
+  padding: 12px 15px;
+  border: 1px solid var(--acento-borde);
+  border-radius: var(--radio-s);
+  background: var(--acento-suave);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tinta-2);
+}
+
+.confirmar-aviso.malo {
+  border-color: var(--no-borde);
+  background: var(--no-suave);
+}
+
+.confirmar-muestra {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--tinta-3);
+}
+.confirmar-muestra[hidden] { display: none; }
+
+.confirmar-muestra li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirmar-muestra b { color: var(--tinta-2); font-weight: 500; }
+
+#confirmar .modal-pie { justify-content: flex-end; }
+#confirmar-si:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+/* ---------- trabajo en curso ---------- */
+
+.trabajo {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  z-index: 70;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  padding: 16px 18px;
+  border: 1px solid var(--borde-alto);
+  border-radius: var(--radio);
+  background: linear-gradient(180deg, var(--elevado), var(--superficie));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 20px 50px rgba(0,0,0,.6);
+}
+.trabajo[hidden] { display: none; }
+
+.trabajo-alto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.trabajo-etiqueta {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+/* «paso 2 de 3». La barra de progreso es de cada paso, así que el avance de
+   la acción entera se dice con palabras. */
+.trabajo-paso {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--tinta-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trabajo-cerrar {
+  margin-left: auto;
+  color: var(--tinta-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  line-height: 0;
+}
+.trabajo-cerrar:hover { color: var(--tinta); }
+.trabajo-cerrar[hidden] { display: none; }
+
+.trabajo-barra {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .07);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.trabajo-barra[hidden] { display: none; }
+
+.trabajo-barra > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: var(--acento);
+  transition: width var(--medio);
+}
+
+.trabajo-linea,
+.trabajo-final {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--tinta-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trabajo-final {
+  white-space: normal;
+  color: var(--tinta-2);
+}
+.trabajo-final[hidden] { display: none; }
+
+/* «Se quedó sin saldo» NO es un fallo: lo pendiente sigue pendiente y se hace
+   solo en cuanto haya dinero. Pintarlo de rojo le enseñaría que algo se
+   rompió, y peor: que esas ofertas se perdieron. */
+.trabajo-final.sin_saldo { color: var(--acento); }
+.trabajo-final.fallido   { color: var(--no); }
+.trabajo-final.terminado { color: var(--si); }
+
+.trabajo-pie {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.trabajo-boton {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--tinta-3);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.trabajo-boton:hover { color: var(--tinta); }
+.trabajo-parar:hover { color: var(--no); }
+.trabajo-boton[hidden] { display: none; }
+
+.trabajo-salida {
+  margin: 12px 0 0;
+  padding: 12px;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: var(--radio-s);
+  background: rgba(0, 0, 0, .35);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--tinta-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.trabajo-salida[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .fila-acciones { height: auto; padding-top: 12px; padding-bottom: 12px; flex-wrap: wrap; }
+  .acciones { width: 100%; }
+  .btn-accion { flex: 1 1 auto; justify-content: center; }
+  .trabajo { right: 12px; left: 12px; bottom: 12px; width: auto; }
+  .ranking { padding: 18px 16px; }
+  .ranking-item { grid-template-columns: 26px 1fr; }
+}
+
+
+/* ---------- que la cabecera quepa ----------
+   Con seis filtros de relevancia y tres botones de acción, la cabecera dejó de
+   caber en una pantalla estrecha y la página ENTERA se iba en scroll
+   horizontal. Es el peor síntoma posible en una bandeja: parece que hay
+   contenido escondido a la derecha, que es justo lo que este proyecto no se
+   permite ni de forma accidental.
+
+   Medido en el navegador a 640 px de ancho: la fila de relevancia pedía 854.
+   Se arregla dejando que los filtros bajen de línea en vez de empujar. */
+
+.filtros { flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .cabecera-interior {
+    height: auto;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 12px 18px;
+  }
+  .campo-mercado { margin-left: 0; }
+  .coste { width: 100%; white-space: normal; }
+  .presupuesto { width: 100%; }
+}
+
+/* ---------- el pie de la app ---------- */
+
+/* Va al final del contenido, no en la cabecera fija. La cabecera costó bajar
+   de 189 px a 77 y no se vuelve a inflar por algo que se mira una vez al mes;
+   aquí abajo no ocupa nada durante la sesión y sigue estando el día que hace
+   falta leérselo a alguien por teléfono. */
+/* FIJO Y ABAJO A LA IZQUIERDA, no al final del contenido. Primero se puso al
+   final de <main> y quedaba a 26.000 px de scroll —medido—, o sea invisible:
+   para verlo había que pasar por delante de las 280 ofertas. Un dato que solo
+   existe cuando algo va mal tiene que estar SIEMPRE a la vista, o no está.
+
+   A la izquierda porque la esquina derecha es del panel de trabajos (fixed,
+   360 px, a 26 px del borde) y solaparse con él sería taparle el progreso de
+   una corrida justo cuando está mirándolo. */
+.pie-app {
+  position: fixed;
+  left: 26px;
+  bottom: 26px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--tinta-3);
+  font-size: 12px;
+}
+
+/* DISCRETO HASTA QUE SE LE HACE CASO: es información de avería, no de uso.
+   Pero la atenuación va PIEZA A PIEZA y no en el contenedor, y esto no es
+   estilo: `opacity` en el padre crea un grupo de composición, y dentro de un
+   grupo ningún hijo puede ser MÁS opaco que él. Con el pie entero al 55%,
+   «Dudas y ayuda» —que sí es información de uso— no podía recuperar contraste
+   de ninguna manera, ni con `opacity: 1` ni con un color más claro. */
+.pie-app > :not(#pie-dudas) {
+  opacity: .55;
+  transition: opacity .15s ease;
+}
+
+.pie-app:hover > :not(#pie-dudas) { opacity: 1; }
+
+.pie-version { font-variant-numeric: tabular-nums; }
+
+.pie-separador { opacity: 0.5; }
+
+.pie-boton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.pie-boton:hover { color: var(--tinta-2); }
+
+/* ---------- dudas y ayuda ----------
+   El documento que ella puede consultar sin escribirle a nadie. Se pinta
+   desde `AYUDA.md`; ver `pintarAyuda` en app.js. */
+
+/* MÁS ESTRECHO QUE EL MODAL DE LA FICHA, y no por gusto: esto es prosa, y una
+   línea de 760 px se lee peor que una de 640. La ficha es una tabla de datos;
+   esto es una hoja. */
+.caja-ayuda { width: min(640px, 100%); }
+
+.ayuda-texto {
+  color: var(--tinta-2);
+  font-size: 14.5px;
+  line-height: 1.62;
+}
+
+.ayuda-seccion {
+  margin: 26px 0 10px;
+  color: var(--tinta);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+.ayuda-parrafo { margin: 0 0 12px; }
+
+.ayuda-lista {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ayuda-lista li::marker { color: var(--acento); }
+
+/* La negrita del documento es lo que se lee de un vistazo cuando algo va mal
+   y no hay paciencia para leer el párrafo entero. Que destaque de verdad. */
+.ayuda-texto strong { color: var(--tinta); font-weight: 650; }
+
+.ayuda-texto code {
+  font-family: var(--mono);
+  font-size: .92em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  color: var(--tinta);
+}
+
+.ayuda-sep {
+  margin: 22px 0;
+  border: none;
+  border-top: 1px solid var(--borde);
+}
+
+/* EL PIE ENTERO ES DISCRETO PORQUE ES INFORMACIÓN DE AVERÍA — pero «Dudas y
+   ayuda» no lo es: es información de USO, y al 55% de opacidad en una esquina
+   no se encuentra el día que hace falta. Se le devuelve el contraste a ese
+   botón sin inflar el resto del pie. */
+#pie-dudas { color: var(--tinta-2); }
+
+#pie-dudas:hover { color: var(--acento); }
+
+
+/* ---------- tus criterios ----------
+   La caja es más ancha que las demás: aquí se escribe, no se lee, y un
+   textarea estrecho parte frases que ella tiene que poder leer enteras. */
+
+.modal-caja-ancha { max-width: 640px; }
+
+.ajustes-intro { color: var(--tinta-2); font-size: 14px; margin: 0 0 18px; }
+
+.ajustes-etiqueta {
+  display: block;
+  font-size: 12.5px;
+  color: var(--tinta-3);
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+
+.ajustes-texto {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--tinta);
+  background: var(--superficie);
+  border: 1px solid var(--borde-alto);
+  border-radius: var(--radio-s);
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.ajustes-texto:focus,
+.ajustes-numero:focus { outline: none; border-color: var(--acento-borde); }
+
+.ajustes-pista { color: var(--tinta-3); font-size: 12.5px; margin: 8px 0 0; }
+
+.ajustes-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+}
+.ajustes-fila .ajustes-etiqueta { margin-bottom: 0; }
+
+.ajustes-numero {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--tinta);
+  background: var(--superficie);
+  border: 1px solid var(--borde-alto);
+  border-radius: var(--radio-s);
+  padding: 8px 11px;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.ajustes-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--tinta);
+  cursor: pointer;
+}
+.ajustes-check input { width: 17px; height: 17px; accent-color: var(--acento); }
+
+.ajustes-sep { border: 0; border-top: 1px solid var(--borde); margin: 24px 0 4px; }
+
+.ajustes-error {
+  margin: 16px 0 0;
+  padding: 11px 13px;
+  border-radius: var(--radio-s);
+  background: var(--no-suave);
+  border: 1px solid var(--no-borde);
+  color: var(--tinta);
+  font-size: 13.5px;
+}
+
+/* ---------- lo que se hizo solo ----------
+   Una línea con el acento de la casa, encima de todo. No es una alerta: es el
+   parte de lo que pasó mientras ella no estaba. */
+.auto-aviso {
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-radius: var(--radio-s);
+  background: var(--acento-suave);
+  border: 1px solid var(--acento-borde);
+  color: var(--tinta-2);
+  font-size: 13.5px;
+}

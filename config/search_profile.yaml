@@ -1,0 +1,604 @@
+# =============================================================================
+#  Configuración de búsqueda — Job Rob
+# =============================================================================
+#  Todo lo que el usuario puede querer cambiar vive AQUÍ, no en el código:
+#  qué se busca, en qué mercados, qué se descarta y cuánto se puede gastar.
+#
+#  PERFIL DE DEMOSTRACIÓN. El perfil de abajo es FICTICIO: describe a un
+#  ejecutivo de operaciones inventado. La versión que usa la clienta real vive
+#  solo en su máquina y nunca ha estado en este repositorio.
+#
+#  Este archivo no contiene secretos: las API keys van en `.env`.
+# =============================================================================
+
+version: 1
+
+# Perfil que se ejecuta si no se pasa `--profile`. Es un diccionario para
+# poder añadir otra línea de búsqueda sin tocar Python.
+active_profile: ejecutivo_operaciones_logistica
+
+profiles:
+
+  ejecutivo_operaciones_logistica:
+    label: "Ejecutivo — operaciones, logística y cadena de suministro"
+    description: >
+      Perfil ficticio de demostración: dirección de operaciones con 15+ años en
+      logística, cadena de suministro y manufactura. Volumen esperado bajo:
+      decenas de ofertas relevantes al mes, no cientos.
+
+    # Cada combinación es una lista de términos que deben aparecer TODOS en la
+    # oferta (semántica AND). Se lanzan contra cada mercado.
+    keyword_combinations:
+      - ["COO", "Logistics"]
+      - ["COO", "Supply Chain"]
+      - ["VP Operations", "Logistics"]
+      - ["Director of Operations", "Manufacturing"]
+      - ["Head of Operations", "Distribution"]
+      - ["Logistics Director", "Supply Chain"]
+      - ["Plant Director", "Supply Chain"]
+      - ["General Manager", "Logistics"]
+      - ["Managing Director", "Mexico"]
+      - ["Country Manager", "Manufacturing"]
+      - ["Supply Chain Director", "Mexico"]
+      - ["VP Supply Chain", "Manufacturing"]
+      - ["Head of Logistics", "Distribution"]
+
+    markets:
+      - alemania
+      - mexico
+      - texas_us
+
+    # Ajustes por mercado. En México se añaden combinaciones en español y se
+    # quitan las que llevan «Mexico» dentro: dentro del índice mexicano esa
+    # palabra casa con casi cualquier anuncio del país y solo trae ruido.
+    combinaciones_por_mercado:
+
+      mexico:
+
+        ademas:
+          - ["Director de Operaciones", "Manufactura"]
+          - ["Director de Operaciones", "Logística"]
+          - ["Director de Operaciones", "Cadena de Suministro"]
+          - ["Director General", "Logística"]
+          - ["Director General", "Manufactura"]
+          - ["Director de Logística", "Distribución"]
+          - ["Director de Cadena de Suministro", "México"]
+          - ["Gerente General", "Logística"]
+          - ["Director de Planta", "Manufactura"]
+          - ["Gerente de Operaciones", "Logística"]
+
+        menos:
+          - ["Managing Director", "Mexico"]
+          - ["Supply Chain Director", "Mexico"]
+
+    # -------------------------------------------------------------------------
+    #  FILTROS DUROS — gratis y locales, antes de gastar un céntimo en el LLM.
+    #  `exclude_title_terms` tira roles que no son de dirección (en español,
+    #  inglés y alemán); `include_title_terms` es una lista blanca: el título
+    #  tiene que decir que el puesto dirige algo. Lo que sobrevive lo lee el
+    #  clasificador, que es quien entiende la descripción.
+    # -------------------------------------------------------------------------
+    hard_filters:
+
+      max_days_old: 30
+
+      exclude_title_terms:
+
+        - "intern"
+        - "internship"
+        - "becario"
+        - "practicante"
+        - "prácticas"
+        - "trainee"
+        - "junior"
+        - "jr."
+        - "assistant to"
+        - "auxiliar"
+        - "aprendiz"
+
+        - "praktikant"
+        - "praktikantin"
+        - "praktikum"
+        - "werkstudent"
+        - "werkstudentin"
+        - "auszubildende"
+        - "auszubildender"
+        - "azubi"
+        - "aushilfe"
+        - "sachbearbeiter"
+        - "sachbearbeiterin"
+        - "assistenz"
+
+        - "analyst"
+        - "analista"
+        - "associate"
+        - "asociado"
+        - "specialist"
+        - "especialista"
+        - "coordinator"
+        - "coordinador"
+        - "coordinadora"
+
+        - "developer"
+        - "desarrollador"
+        - "programador"
+        - "engineer"
+        - "ingeniero"
+        - "data scientist"
+        - "designer"
+
+        - "business development"
+        - "desarrollo de negocio"
+        - "account executive"
+        - "sales representative"
+        - "ejecutivo de ventas"
+        - "vendedor"
+        - "recruiter"
+        - "reclutador"
+        - "headhunter"
+
+        - "marketing"
+        - "mercadotecnia"
+        - "cmo"
+        - "publicidad"
+        - "brand"
+        - "content"
+        - "product"
+        - "ventas"
+        - "sales"
+        - "comercial"
+
+        - "finance"
+        - "finanzas"
+        - "financiero"
+        - "project finance"
+        - "banker"
+        - "controller"
+        - "contabilidad"
+        - "contable"
+        - "tesorería"
+        - "crédito"
+        - "cobranza"
+        - "auditoría"
+        - "fiscal"
+        - "impuestos"
+
+        - "recursos humanos"
+        - "rrhh"
+        - "human resources"
+        - "talento"
+        - "legal"
+        - "jurídico"
+        - "customer success"
+        - "customer happiness"
+        - "call center"
+        - "atención a clientes"
+
+        - "tienda"
+        - "sucursal"
+        - "restaurante"
+        - "enfermería"
+        - "médico"
+        - "clínico"
+        - "e-commerce"
+        - "ecommerce"
+
+        - "nursing"
+        - "nurse"
+        - "housekeeping"
+        - "tax"
+        - "fp&a"
+        - "cybersecurity"
+        - "information technology"
+        - "chief of staff"
+        - "superintendent"
+        - "software"
+        - "cloud"
+
+      include_title_terms:
+
+        - "director"
+        - "directora"
+        - "dirección"
+        - "subdirector"
+        - "subdirectora"
+        - "gerente"
+        - "gerencia"
+        - "jefe de"
+        - "jefa de"
+        - "presidente"
+        - "vicepresidente"
+
+        - "chief"
+        - "head of"
+        - "vp"
+        - "vice president"
+        - "president"
+        - "managing director"
+        - "general manager"
+        - "country manager"
+        - "superintendent"
+
+        - "consultor"
+        - "consultora"
+        - "consultoría"
+        - "consultant"
+        - "asesor"
+        - "asesora"
+        - "asesoría"
+        - "advisor"
+
+        - "coo"
+        - "ceo"
+
+      exclude_companies: []
+
+      # Umbral salarial. En modo `report` no tira nada: marca en el reporte las
+      # ofertas que declaran un sueldo por debajo. Las que no lo declaran se
+      # quedan, porque la mayoría de puestos de dirección no lo publica.
+      salary_floor:
+        mode: report
+
+        amount: 170000
+        currency: USD
+        period: year
+
+        on_missing_salary: keep
+
+        use_range_top: true
+
+        fx_to_usd:
+          USD: 1.0
+          MXN: 0.055
+          EUR: 1.08
+          CAD: 0.73
+          GBP: 1.27
+        fx_updated: "2026-08-26"
+
+      require_all_terms_in_text: false
+
+# =============================================================================
+#  MERCADOS — país, fuente y filtro geográfico local.
+#  El filtro geográfico se aplica DESPUÉS de recibir las ofertas: las APIs no
+#  filtran por estado o condado de forma fiable, así que se decide aquí.
+# =============================================================================
+markets:
+
+  alemania:
+    label: "Alemania"
+    country_code: de
+
+    adzuna:
+      country: de
+      where: ""
+
+    jooble:
+      api_key_env: JOOBLE_API_KEY_US
+      host: "de.jooble.org"
+      location: "Deutschland"
+
+    geo_filter:
+      mode: none
+
+  mexico:
+    label: "México"
+    country_code: mx
+
+    adzuna:
+      country: mx
+      where: ""
+
+    jooble:
+      api_key_env: JOOBLE_API_KEY_MX
+      host: "mx.jooble.org"
+      location: "México"
+
+    geo_filter:
+      mode: allow_regions
+
+      regions:
+        - "Nuevo León"
+        - "Coahuila"
+        - "Querétaro"
+        - "Jalisco"
+
+      cities: []
+
+      unresolved_policy: keep
+
+  texas_us:
+    label: "Texas, EE.UU."
+    country_code: us
+
+    adzuna:
+      country: us
+      where: "Texas"
+
+    jooble:
+      api_key_env: JOOBLE_API_KEY_US
+      host: "jooble.org"
+      location: "Texas"
+
+    geo_filter:
+      mode: allow_regions
+
+      regions:
+        - "texas"
+        - "tx"
+
+      # Zonas dentro de Texas. El usuario puede quedarse con una sola desde la
+      # bandeja. Se reconocen por condado (fiable) y por ciudad (de respaldo).
+      zonas:
+        - clave: houston
+          etiqueta: "Houston"
+          descripcion: "Houston, The Woodlands, Sugar Land, Katy, Galveston, College Station"
+          condados:
+            - "Harris County"
+            - "Fort Bend County"
+            - "Montgomery County"
+            - "Galveston County"
+            - "Brazoria County"
+            - "Liberty County"
+            - "Waller County"
+            - "Chambers County"
+            - "Austin County"
+            - "Wharton County"
+            - "Matagorda County"
+            - "Colorado County"
+            - "Washington County"
+            - "Grimes County"
+            - "Brazos County"
+          ciudades:
+            - "houston"
+            - "sugar land"
+            - "the woodlands"
+            - "katy"
+            - "pasadena"
+            - "pearland"
+            - "baytown"
+            - "league city"
+            - "conroe"
+            - "galveston"
+            - "missouri city"
+            - "humble"
+            - "texas city"
+            - "friendswood"
+            - "tomball"
+            - "stafford"
+            - "bellaire"
+            - "deer park"
+            - "la porte"
+            - "webster"
+            - "lake jackson"
+            - "freeport"
+            - "angleton"
+            - "rosenberg"
+            - "richmond"
+            - "bay city"
+            - "el campo"
+            - "brenham"
+            - "college station"
+            - "bryan"
+
+        - clave: austin
+          etiqueta: "Austin"
+          descripcion: "Austin, Round Rock, Georgetown, Cedar Park, San Marcos, Bastrop"
+          condados:
+            - "Travis County"
+            - "Williamson County"
+            - "Hays County"
+            - "Bastrop County"
+            - "Caldwell County"
+            - "Blanco County"
+            - "Fayette County"
+            - "Lee County"
+            - "Burleson County"
+          ciudades:
+            - "austin"
+            - "round rock"
+            - "cedar park"
+            - "georgetown"
+            - "pflugerville"
+            - "leander"
+            - "hutto"
+            - "san marcos"
+            - "kyle"
+            - "buda"
+            - "dripping springs"
+            - "wimberley"
+            - "lakeway"
+            - "bee cave"
+            - "bastrop"
+            - "elgin"
+            - "lockhart"
+            - "luling"
+            - "la grange"
+            - "giddings"
+            - "johnson city"
+
+        - clave: san_antonio
+          etiqueta: "San Antonio"
+          descripcion: "San Antonio, New Braunfels, Seguin, Schertz, Boerne"
+          condados:
+            - "Bexar County"
+            - "Comal County"
+            - "Guadalupe County"
+            - "Kendall County"
+            - "Medina County"
+            - "Bandera County"
+            - "Wilson County"
+            - "Atascosa County"
+            - "Frio County"
+            - "Gonzales County"
+            - "Karnes County"
+            - "McMullen County"
+          ciudades:
+            - "san antonio"
+            - "new braunfels"
+            - "seguin"
+            - "schertz"
+            - "cibolo"
+            - "converse"
+            - "universal city"
+            - "boerne"
+            - "helotes"
+            - "castroville"
+            - "hondo"
+            - "floresville"
+            - "pleasanton"
+            - "pearsall"
+            - "gonzales"
+            - "karnes city"
+
+        - clave: sur
+          etiqueta: "Valle y sur de Texas"
+          descripcion: "Brownsville, McAllen, Harlingen, Laredo, Corpus Christi, Kingsville, Victoria"
+          condados:
+            - "Cameron County"
+            - "Hidalgo County"
+            - "Willacy County"
+            - "Starr County"
+            - "Zapata County"
+            - "Webb County"
+            - "Jim Hogg County"
+            - "Brooks County"
+            - "Kenedy County"
+            - "Kleberg County"
+            - "Jim Wells County"
+            - "Duval County"
+            - "Nueces County"
+            - "San Patricio County"
+            - "Aransas County"
+            - "Refugio County"
+            - "Bee County"
+            - "Live Oak County"
+            - "Goliad County"
+            - "Victoria County"
+            - "Calhoun County"
+            - "Jackson County"
+            - "DeWitt County"
+            - "Lavaca County"
+            - "La Salle County"
+          ciudades:
+            - "brownsville"
+            - "harlingen"
+            - "san benito"
+            - "los fresnos"
+            - "port isabel"
+            - "south padre island"
+            - "weslaco"
+            - "mercedes"
+            - "donna"
+            - "pharr"
+            - "edinburg"
+            - "mcallen"
+            - "mission"
+            - "la joya"
+            - "raymondville"
+            - "rio grande city"
+            - "roma"
+            - "zapata"
+            - "laredo"
+            - "hebbronville"
+            - "falfurrias"
+            - "kingsville"
+            - "alice"
+            - "robstown"
+            - "corpus christi"
+            - "portland"
+            - "aransas pass"
+            - "rockport"
+            - "port aransas"
+            - "refugio"
+            - "beeville"
+            - "george west"
+            - "goliad"
+            - "victoria"
+            - "port lavaca"
+            - "edna"
+            - "cuero"
+            - "yoakum"
+            - "hallettsville"
+            - "cotulla"
+
+      unresolved_policy: drop
+
+# =============================================================================
+#  FUENTES — cuotas y ritmo. Jooble da 500 peticiones DE POR VIDA por key, así
+#  que lleva su propio contador y se niega a gastar cuando queda poco.
+# =============================================================================
+sources:
+
+  adzuna:
+    enabled: true
+
+    daily_call_budget: 250
+    weekly_call_budget: 1000
+    monthly_call_budget: 2500
+
+    warn_daily_above: 100
+
+    results_per_page: 50
+    max_pages: 1
+
+    max_calls_per_minute: 25
+    sleep_seconds_between_calls: 2.5
+    timeout_seconds: 30
+
+  jooble:
+    enabled: false
+
+    lifetime_request_budget: 500
+
+    warn_when_remaining_below: 100
+
+    refuse_when_remaining_below: 20
+
+    max_pages: 1
+    sleep_seconds_between_calls: 1.0
+    timeout_seconds: 30
+
+# =============================================================================
+#  LLM — los límites de gasto. Cada acción enseña su coste antes de gastar y
+#  no puede pasar de `tope_por_accion_usd`. El techo mensual avisa; el tope
+#  por acción frena. El triaje decide a qué ofertas merece la pena leerles la
+#  descripción completa antes de clasificar.
+# =============================================================================
+llm:
+
+  tope_por_accion_usd: 0.60
+
+  presupuesto_mensual_usd: 12.00
+
+  al_agotarse: avisar
+
+  racion_automatica_mensual_usd: 10.00
+
+  avisar_al_superar_pct: 75
+
+  esfuerzo_ranking: medium
+
+  max_ofertas_por_ranking: 20
+
+  triaje:
+    activo: true
+
+    ofertas_por_corrida: 6
+
+    max_vacantes_por_triaje: 60
+
+    esfuerzo: low
+
+storage:
+  database_path: "data/ofertas.db"
+
+cache:
+  enabled: true
+  directory: "data/cache"
+  ttl_hours: 12
+
+descripciones:
+  habilitado: true
+  max_por_corrida: 40
+  sleep_seconds_between_calls: 1.5
+  timeout_seconds: 30
