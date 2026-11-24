@@ -104,4 +104,4 @@ Python · FastAPI · Uvicorn · SQLite · Pydantic · Anthropic SDK · Requests 
 
 ## Autor
 
-**Juan Pablo (JP)** — Desarrollo de Aplicaciones Multiplataforma (MEDAC, Málaga). [GitHub](https://github.com/jpgarcia04)
+**Juan Pablo García Monsalve ** — Desarrollo de Aplicaciones Multiplataforma (MEDAC, Málaga). [GitHub](https://github.com/jpgarcia04)
